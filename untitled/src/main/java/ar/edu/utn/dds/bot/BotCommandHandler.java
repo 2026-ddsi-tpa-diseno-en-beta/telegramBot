@@ -1,0 +1,318 @@
+package ar.edu.utn.dds.bot;
+
+import ar.edu.utn.dds.bot.dto.DonadorRequest;
+import ar.edu.utn.dds.bot.dto.EntidadRequest;
+import ar.edu.utn.dds.bot.dto.NecesidadRequest;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+public class BotCommandHandler {
+
+    private final DonadoresApiClient api;
+    private final Map<Long, BotRole> roles = new ConcurrentHashMap<>();
+
+    public BotCommandHandler(
+            DonadoresApiClient api
+    ) {
+        this.api = api;
+    }
+
+    public String handle(long chatId, String text) {
+        if (text == null || text.isBlank())
+            return "No entendí el comando.";
+
+        String[] parts = text.trim().split("\\s+", 2);
+        String command = parts[0].toLowerCase();
+
+        String args =
+                parts.length > 1
+                        ? parts[1].trim()
+                        : "";
+
+        try {
+            return switch (command) {
+                case "/start" ->
+                        start();
+                case "/donador" ->
+                        selectRole(
+                                chatId,
+                                BotRole.DONADOR
+                        );
+                case "/admin" ->
+                        selectRole(
+                                chatId,
+                                BotRole.ADMIN
+                        );
+                case "/menu" ->
+                        menu(chatId);
+
+                // DONADORES
+                case "/registrarse" ->
+                        requireRole(
+                                chatId,
+                                BotRole.DONADOR,
+                                () -> registrarDonador(args)
+                        );
+                case "/estadisticas" ->
+                        requireRole(
+                                chatId,
+                                BotRole.DONADOR,
+                                () -> estadisticas(args)
+                        );
+                case "/donador_id" ->
+                        requireRole(
+                                chatId,
+                                BotRole.DONADOR,
+                                () -> buscarDonador(args)
+                        );
+                case "/donadores" ->
+                        requireRole(
+                                chatId,
+                                BotRole.DONADOR,
+                                api::listarDonadores
+                        );
+
+                // ADMIN
+                case "/crear_entidad" ->
+                        requireRole(
+                                chatId,
+                                BotRole.ADMIN,
+                                () -> crearEntidad(args)
+                        );
+                case "/entidades" ->
+                        requireRole(
+                                chatId,
+                                BotRole.ADMIN,
+                                api::listarEntidades
+                        );
+                case "/entidad" ->
+                        requireRole(
+                                chatId,
+                                BotRole.ADMIN,
+                                () -> buscarEntidad(args)
+                        );
+                case "/alta_necesidad" ->
+                        requireRole(
+                                chatId,
+                                BotRole.ADMIN,
+                                () -> crearNecesidad(args)
+                        );
+                case "/necesidades_producto" ->
+                        requireRole(
+                                chatId,
+                                BotRole.ADMIN,
+                                () -> necesidadesPorProducto(args)
+                        );
+
+                default ->
+                        "Comando desconocido.\n\n"
+                                + help();
+            };
+        } catch (Exception e) {
+            return "❌ No se pudo realizar la operación.\n"
+                    + e.getMessage();
+        }
+    }
+
+    // =========================
+    // MENÚ
+    // =========================
+    private String start() {
+        return """
+                Bienvenido a DonaTrack 🤝
+
+                Seleccioná tu tipo de usuario:
+
+                /donador
+                /admin
+                """;
+    }
+
+    private String selectRole(long chatId, BotRole role) {
+        roles.put(chatId, role);
+
+        return switch (role) {
+            case DONADOR -> """
+                    Rol seleccionado: DONADOR.
+
+                    Comandos:
+
+                    /registrarse nombre|apellido|edad|email|documento|domicilio
+                    /estadisticas ID
+                    /donador_id ID
+                    /donadores
+
+                    /menu
+                    """;
+            case ADMIN -> """
+                    Rol seleccionado: ADMIN.
+
+                    Comandos:
+
+                    /crear_entidad razonSocial|domicilio|telefono|correo
+                    /entidad ID
+                    /entidades
+
+                    /alta_necesidad entidadID|productoID|descripcion|cantidad|urgencia|tipo
+                    /necesidades_producto productoID
+
+                    /menu
+                    """;
+        };
+    }
+
+    private String menu(long chatId) {
+        BotRole role = roles.get(chatId);
+        if (role == null) return start();
+
+        return selectRole(
+                chatId,
+                role
+        );
+    }
+
+    // =========================
+    // DONADORES
+    // =========================
+    private String registrarDonador(String args) throws Exception {
+        String[] values = split(args, 6);
+
+        return api.registrarDonador(
+                new DonadorRequest(
+                        values[0],
+                        values[1],
+                        Integer.parseInt(values[2]),
+                        values[3],
+                        values[4],
+                        values[5]
+                )
+        );
+    }
+
+    private String estadisticas(String args) throws Exception {
+        requireArgument(args);
+        return api.estadisticasDonador(args);
+    }
+
+    private String buscarDonador(String args) throws Exception {
+        requireArgument(args);
+        return api.buscarDonador(args);
+    }
+
+    // =========================
+    // ENTIDADES
+    // =========================
+    private String crearEntidad(String args) throws Exception {
+        String[] values = split(args, 4);
+
+        return api.crearEntidad(
+                new EntidadRequest(
+                        values[0],
+                        values[1],
+                        values[2],
+                        values[3]
+                )
+        );
+    }
+
+    private String buscarEntidad(String args) throws Exception {
+        requireArgument(args);
+        return api.buscarEntidad(args);
+    }
+
+    // =========================
+    // NECESIDADES
+    // =========================
+    private String crearNecesidad(String args) throws Exception {
+        String[] values = split(args, 6);
+
+        return api.crearNecesidad(
+                new NecesidadRequest(
+                        values[0],
+                        values[1],
+                        values[2],
+                        Integer.parseInt(values[3]),
+                        Integer.parseInt(values[4]),
+                        values[5]
+                )
+        );
+    }
+
+    private String necesidadesPorProducto(String args) throws Exception {
+        requireArgument(args);
+        return api.necesidadesPorProducto(args);
+    }
+
+    // =========================
+    // SEGURIDAD DE ROL
+    // =========================
+    private String requireRole(
+            long chatId,
+            BotRole expected,
+            CommandAction action
+    ) throws Exception {
+        BotRole current = roles.get(chatId);
+
+        if (current != expected)
+            return "Primero seleccioná el rol correcto con:\n\n"
+                    + (
+                    expected == BotRole.DONADOR
+                            ? "/donador"
+                            : "/admin"
+            );
+
+        return action.execute();
+    }
+
+    // =========================
+    // VALIDACIONES
+    // =========================
+    private String[] split(String args, int expected) {
+        if (args == null || args.isBlank()) 
+            throw new IllegalArgumentException(
+                    "Faltan parámetros."
+            );
+
+        String[] values = args.split("\\|", -1);
+
+        if (values.length != expected)
+            throw new IllegalArgumentException(
+                    "Se esperaban "
+                            + expected
+                            + " parámetros separados por '|'."
+            );
+
+        for (String value : values) {
+            if (value.isBlank())
+                throw new IllegalArgumentException(
+                        "No puede haber parámetros vacíos."
+                );
+        }
+
+        return values;
+    }
+
+    private void requireArgument(String args) {
+        if (args == null || args.isBlank()) 
+            throw new IllegalArgumentException(
+                    "Debe indicar un ID."
+            );
+    }
+
+    private String help() {
+        return """
+                Comandos principales:
+
+                /start
+                /donador
+                /admin
+                /menu
+                """;
+    }
+
+    @FunctionalInterface
+    private interface CommandAction {
+        String execute() throws Exception;
+    }
+}
