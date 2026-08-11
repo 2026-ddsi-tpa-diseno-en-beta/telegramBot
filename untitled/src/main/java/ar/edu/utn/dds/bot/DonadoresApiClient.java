@@ -75,6 +75,13 @@ public class DonadoresApiClient {
         return get("/entidades");
     }
 
+    public String modificarEntidad(String id, EntidadRequest request) throws IOException, InterruptedException {
+        return put(
+                "/entidades/" + encode(id),
+                objectMapper.writeValueAsString(request)
+        );
+    }
+
     // =========================
     // NECESIDADES
     // =========================
@@ -90,6 +97,21 @@ public class DonadoresApiClient {
                 "/necesidades?productoSolicitadoID="
                         + encode(productoId)
         );
+    }
+
+    public String buscarNecesidad(String id) throws IOException, InterruptedException {
+        return get("/necesidades/" + encode(id));
+    }
+
+    public String modificarNecesidad(String id, NecesidadRequest request) throws IOException, InterruptedException {
+        return put(
+                "/necesidades/" + encode(id),
+                objectMapper.writeValueAsString(request)
+        );
+    }
+
+    public String borrarNecesidad(String id) throws IOException, InterruptedException {
+        return delete("/necesidades/" + encode(id));
     }
 
     // =========================
@@ -119,6 +141,35 @@ public class DonadoresApiClient {
                                         StandardCharsets.UTF_8
                                 )
                         )
+                        .build();
+
+        return send(request);
+    }
+
+    private String put(String path, String body) throws IOException, InterruptedException {
+        HttpRequest request =
+                HttpRequest.newBuilder()
+                        .uri(URI.create(baseUrl + path))
+                        .header(
+                                "Content-Type",
+                                "application/json"
+                        )
+                        .PUT(
+                                HttpRequest.BodyPublishers.ofString(
+                                        body,
+                                        StandardCharsets.UTF_8
+                                )
+                        )
+                        .build();
+
+        return send(request);
+    }
+
+    private String delete(String path) throws IOException, InterruptedException {
+        HttpRequest request =
+                HttpRequest.newBuilder()
+                        .uri(URI.create(baseUrl + path))
+                        .DELETE()
                         .build();
 
         return send(request);
