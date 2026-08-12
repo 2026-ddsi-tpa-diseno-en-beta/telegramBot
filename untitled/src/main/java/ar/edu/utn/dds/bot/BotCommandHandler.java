@@ -104,6 +104,30 @@ public class BotCommandHandler {
                                 BotRole.ADMIN,
                                 () -> necesidadesPorProducto(args)
                         );
+                case "/necesidad" ->
+                        requireRole(
+                                chatId,
+                                BotRole.ADMIN,
+                                () -> buscarNecesidad(args)
+                        );
+                case "/editar_entidad" ->
+                        requireRole(
+                                chatId,
+                                BotRole.ADMIN,
+                                () -> editarEntidad(args)
+                        );
+                case "/borrar_necesidad" ->
+                        requireRole(
+                                chatId,
+                                BotRole.ADMIN,
+                                () -> borrarNecesidad(args)
+                        );
+                case "/modificar_necesidad" ->
+                        requireRole(
+                                chatId,
+                                BotRole.ADMIN,
+                                () -> modificarNecesidad(args)
+                        );
 
                 default ->
                         "Comando desconocido.\n\n"
@@ -151,10 +175,14 @@ public class BotCommandHandler {
                     Comandos:
 
                     /crear_entidad razonSocial|domicilio|telefono|correo
+                    /editar_entidad ID|razonSocial|domicilio|telefono|correo
                     /entidad ID
                     /entidades
 
                     /alta_necesidad entidadID|productoID|descripcion|cantidad|urgencia|tipo
+                    /modificar_necesidad ID|entidadID|productoID|descripcion|cantidad|urgencia|tipo
+                    /borrar_necesidad ID
+                    /necesidad ID
                     /necesidades_producto productoID
 
                     /menu
@@ -221,6 +249,20 @@ public class BotCommandHandler {
         return api.buscarEntidad(args);
     }
 
+    private String editarEntidad(String args) throws Exception {
+        String[] values = split(args, 5);
+
+        return api.modificarEntidad(
+                values[0],
+                new EntidadRequest(
+                        values[1],
+                        values[2],
+                        values[3],
+                        values[4]
+                )
+        );
+    }
+
     // =========================
     // NECESIDADES
     // =========================
@@ -242,6 +284,32 @@ public class BotCommandHandler {
     private String necesidadesPorProducto(String args) throws Exception {
         requireArgument(args);
         return api.necesidadesPorProducto(args);
+    }
+
+    private String buscarNecesidad(String args) throws Exception {
+        requireArgument(args);
+        return api.buscarNecesidad(args);
+    }
+
+    private String borrarNecesidad(String args) throws Exception {
+        requireArgument(args);
+        return api.borrarNecesidad(args);
+    }
+
+    private String modificarNecesidad(String args) throws Exception {
+        String[] values = split(args, 7);
+
+        return api.modificarNecesidad(
+                values[0],
+                new NecesidadRequest(
+                        values[1],
+                        values[2],
+                        values[3],
+                        Integer.parseInt(values[4]),
+                        Integer.parseInt(values[5]),
+                        values[6]
+                )
+        );
     }
 
     // =========================
