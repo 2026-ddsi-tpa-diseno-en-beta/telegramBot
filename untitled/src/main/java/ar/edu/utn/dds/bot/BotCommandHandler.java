@@ -1,10 +1,8 @@
 package ar.edu.utn.dds.bot;
 
-import ar.edu.utn.dds.bot.dto.DonacionRequest;
 import ar.edu.utn.dds.bot.dto.DonadorRequest;
 import ar.edu.utn.dds.bot.dto.EntidadRequest;
 import ar.edu.utn.dds.bot.dto.NecesidadRequest;
-import ar.edu.utn.dds.bot.dto.QuejaRequest;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -12,15 +10,10 @@ import java.util.concurrent.ConcurrentHashMap;
 public class BotCommandHandler {
 
     private final DonadoresApiClient api;
-    private final DonacionesApiClient donacionesApi;
     private final Map<Long, BotRole> roles = new ConcurrentHashMap<>();
 
-    public BotCommandHandler(
-            DonadoresApiClient api,
-            DonacionesApiClient donacionesApi
-    ) {
+    public BotCommandHandler(DonadoresApiClient api) {
         this.api = api;
-        this.donacionesApi = donacionesApi;
     }
 
     public String handle(long chatId, String text) {
@@ -133,39 +126,6 @@ public class BotCommandHandler {
                                 BotRole.ADMIN,
                                 () -> modificarNecesidad(args)
                         );
-                case "/cambiar_estado" ->
-                        requireRole(
-                                chatId,
-                                BotRole.ADMIN,
-                                () -> cambiarEstado(args)
-                        );
-
-                // DONACIONES (DONADOR)
-                case "/registrar_donacion" ->
-                        requireRole(
-                                chatId,
-                                BotRole.DONADOR,
-                                () -> registrarDonacion(args)
-                        );
-                case "/mis_donaciones" ->
-                        requireRole(
-                                chatId,
-                                BotRole.DONADOR,
-                                () -> misDonaciones(args)
-                        );
-                case "/donacion" ->
-                        requireRole(
-                                chatId,
-                                BotRole.DONADOR,
-                                () -> buscarDonacion(args)
-                        );
-                case "/queja" ->
-                        requireRole(
-                                chatId,
-                                BotRole.DONADOR,
-                                () -> registrarQueja(args)
-                        );
-
                 default ->
                         "Comando desconocido.\n\n"
                                 + help();
@@ -204,11 +164,6 @@ public class BotCommandHandler {
                     /donador_id ID
                     /donadores
 
-                    /registrar_donacion donadorID|depositoID|descripcion|productoID|cantidad
-                    /mis_donaciones donadorID|fecha (ej: 2025-01-01)
-                    /donacion ID
-                    /queja donacionID|descripcion
-
                     /menu
                     """;
             case ADMIN -> """
@@ -226,8 +181,6 @@ public class BotCommandHandler {
                     /borrar_necesidad ID
                     /necesidad ID
                     /necesidades_producto productoID
-
-                    /cambiar_estado donacionID|estado (INGRESADA|ACEPTADA|CONQUEJA)
 
                     /menu
                     """;
@@ -354,56 +307,6 @@ public class BotCommandHandler {
                         values[6]
                 )
         );
-    }
-
-    // =========================
-    // DONACIONES
-    // =========================
-    private String registrarDonacion(String args) throws Exception {
-        requireDonaciones();
-        String[] values = split(args, 5);
-
-        return donacionesApi.registrarDonacion(
-                new DonacionRequest(
-                        values[0],
-                        values[1],
-                        values[2],
-                        values[3],
-                        Integer.parseInt(values[4])
-                )
-        );
-    }
-
-    private String misDonaciones(String args) throws Exception {
-        requireDonaciones();
-        String[] values = split(args, 2);
-        return donacionesApi.buscarPorDonadorYFecha(values[0], values[1]);
-    }
-
-    private String buscarDonacion(String args) throws Exception {
-        requireDonaciones();
-        requireArgument(args);
-        return donacionesApi.buscarDonacion(args);
-    }
-
-    private String registrarQueja(String args) throws Exception {
-        requireDonaciones();
-        String[] values = split(args, 2);
-        return donacionesApi.registrarQueja(values[0], new QuejaRequest(values[1]));
-    }
-
-    private String cambiarEstado(String args) throws Exception {
-        requireDonaciones();
-        String[] values = split(args, 2);
-        return donacionesApi.cambiarEstado(values[0], values[1]);
-    }
-
-    private void requireDonaciones() {
-        if (donacionesApi == null)
-            throw new IllegalStateException(
-                    "El servicio de Donaciones no está configurado.\n"
-                            + "Agregá integrations.donaciones-url en application.properties."
-            );
     }
 
     // =========================

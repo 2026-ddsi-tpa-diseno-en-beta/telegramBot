@@ -28,21 +28,11 @@ public class BotApplication {
                 "integrations.donadores-url"
         );
 
-        String donacionesUrl = properties.getProperty(
-                "integrations.donaciones-url",
-                ""
-        ).trim();
-
         DonadoresApiClient api =
                 new DonadoresApiClient(donadoresUrl);
 
-        DonacionesApiClient donacionesApi =
-                donacionesUrl.isBlank()
-                        ? null
-                        : new DonacionesApiClient(donacionesUrl);
-
         BotCommandHandler handler =
-                new BotCommandHandler(api, donacionesApi);
+                new BotCommandHandler(api);
 
         DonaTrackBot bot =
                 new DonaTrackBot(
