@@ -10,9 +10,11 @@ import java.util.concurrent.ConcurrentHashMap;
 public class BotCommandHandler {
 
     private final DonadoresApiClient api;
+    private final LogisticaApiClient apiLogistica;
+    private final IncentivosApiClient apiIncentivos;
     private final Map<Long, BotRole> roles = new ConcurrentHashMap<>();
 
-    public BotCommandHandler(DonadoresApiClient api) {
+    public BotCommandHandler(DonadoresApiClient api, LogisticaApiClient apiLogistica, IncentivosApiClient apiIncentivos) {
         this.api = api;
     }
 
@@ -126,6 +128,14 @@ public class BotCommandHandler {
                                 BotRole.ADMIN,
                                 () -> modificarNecesidad(args)
                         );
+                case "/depositos" -> requireRole(chatId, BotRole.ADMIN, apiLogistica::listarDepositos);
+                    
+                case "/stock" -> requireRole(chatId, BotRole.ADMIN, () -> consultarStock(args));
+                    
+                case "/insignias" -> requireRole(chatId, BotRole.ADMIN, apiIncentivos::listarInsignias);
+                    
+                case "/procesar_donador" -> requireRole(chatId, BotRole.ADMIN, () -> procesarDonador(args));
+                    
                 default ->
                         "Comando desconocido.\n\n"
                                 + help();
@@ -307,6 +317,22 @@ public class BotCommandHandler {
                         values[6]
                 )
         );
+    }
+
+    // =========================
+    // LOGÍSTICA
+    // =========================
+    private String consultarStock(String args) throws Exception {
+        requireArgument(args); 
+        return apiLogistica.consultarStock(args); 
+    }
+
+    // =========================
+    // INCENTIVOS
+    // =========================
+    private String procesarDonador(String args) throws Exception {
+        requireArgument(args);
+        return apiIncentivos.procesarDonador(args);
     }
 
     // =========================
