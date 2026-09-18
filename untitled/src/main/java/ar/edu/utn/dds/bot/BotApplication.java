@@ -28,11 +28,17 @@ public class BotApplication {
                 "integrations.donadores-url"
         );
 
+        String logisticaUrl = requiredProperty(properties, "integrations.logistica-url");
+        String incentivosUrl = requiredProperty(properties, "integrations.incentivos-url");
+
         DonadoresApiClient api =
                 new DonadoresApiClient(donadoresUrl);
 
+        LogisticaApiClient apiLogistica = new LogisticaApiClient(logisticaUrl);
+        IncentivosApiClient apiIncentivos = new IncentivosApiClient(incentivosUrl);
+
         BotCommandHandler handler =
-                new BotCommandHandler(api);
+                new BotCommandHandler(api, apiLogistica, apiIncentivos);
 
         DonaTrackBot bot =
                 new DonaTrackBot(
