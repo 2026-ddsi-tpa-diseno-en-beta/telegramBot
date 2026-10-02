@@ -12,7 +12,7 @@ final class ResponseFormatter {
     private static final Map<String, String> LABELS = Map.ofEntries(
         Map.entry("id", "Referencia"), Map.entry("productoSolicitadoID", "Producto"),
         Map.entry("cantidadObjetivo", "Cantidad requerida"), Map.entry("cantidadAsignada", "Cantidad asignada"),
-        Map.entry("cantidadDonada", "Cantidad recibida"), Map.entry("cantidad", "Cantidad"),
+        Map.entry("cantidadDonada", "Cantidad donada"), Map.entry("cantidad", "Cantidad"),
         Map.entry("estado", "Estado"), Map.entry("nivelDeUrgencia", "Urgencia"),
         Map.entry("razonSocial", "Entidad"), Map.entry("productoId", "Producto"),
         Map.entry("productoID", "Producto"), Map.entry("donadorId", "Donador"),

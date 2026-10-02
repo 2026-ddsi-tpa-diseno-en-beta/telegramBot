@@ -51,4 +51,28 @@ class ComponentCommandHandlerTest {
     handler.handle(1,"/insignias");assertEquals("GET /insignias",call.get());
     handler.handle(1,"/procesar_donador d");assertEquals("POST /procesamiento/d",call.get());
   }
+  @Test void preservesRequiredDonorCommandsAndInitialRoleChoice() {
+    String welcome = handler.handle(1,"/start");
+    assertTrue(welcome.contains("/donador")); assertTrue(welcome.contains("/admin"));
+    handler.handle(1,"/donador");
+    handler.handle(1,"/registrarse Demo|Apellido|25|demo@example.com|123|Medrano");
+    assertEquals("POST /donadores", call.get());
+    handler.handle(1,"/estadisticas d"); assertEquals("GET /donadores/d/estadisticas", call.get());
+    handler.handle(1,"/donador_id d"); assertEquals("GET /donadores/d", call.get());
+    handler.handle(1,"/donadores"); assertEquals("GET /donadores", call.get());
+  }
+  @Test void readingNextPageDoesNotRepeatTheRequestAndIsIsolatedByChat() {
+    var requests = new java.util.concurrent.atomic.AtomicInteger();
+    server.createContext("/productos", exchange -> {
+      requests.incrementAndGet();
+      String item="{\"id\":\"reference\",\"descripcion\":\""+"dato ".repeat(100)+"\"}";
+      byte[] data=("["+String.join(",", java.util.Collections.nCopies(20,item))+"]").getBytes(StandardCharsets.UTF_8);
+      exchange.sendResponseHeaders(200,data.length);exchange.getResponseBody().write(data);exchange.close();
+    });
+    handler.handle(1,"/admin");
+    assertTrue(handler.handle(1,"/listar_productos").contains("/pagina N"));
+    assertTrue(handler.handle(1,"/pagina 2").contains("Referencia: reference"));
+    assertEquals(1,requests.get());
+    assertTrue(handler.handle(2,"/pagina 2").contains("venció"));
+  }
 }
