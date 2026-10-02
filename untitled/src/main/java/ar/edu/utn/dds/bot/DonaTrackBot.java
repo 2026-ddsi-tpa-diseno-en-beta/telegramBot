@@ -25,15 +25,17 @@ public class DonaTrackBot extends TelegramLongPollingBot {
         long chatId = update.getMessage().getChatId();
         String text = update.getMessage().getText();
 
-        System.out.printf("Comando recibido: %s%n", text.split("\\s+", 2)[0]);
+        org.slf4j.MDC.put("component", "telegram");
+        org.slf4j.MDC.put("instanceId", System.getenv().getOrDefault("INSTANCE_ID", "local"));
+        org.slf4j.LoggerFactory.getLogger(DonaTrackBot.class).info("telegram.comando comando={}", text.split("\\s+", 2)[0]);
 
         try {
             String response = commandHandler.handle(chatId, text);
             sendMessage(chatId, response);
         } catch (Exception exception) {
             System.err.printf("Error procesando mensaje chatId=%d: %s%n", chatId, exception.getMessage());
-            sendMessage(chatId, "Error: " + exception.getMessage());
-        }
+            sendMessage(chatId, "No se pudo completar el comando. Revisá /menu y el estado del recurso antes de repetirlo.");
+        } finally { org.slf4j.MDC.clear(); }
     }
 
     private void sendMessage(long chatId, String text) {

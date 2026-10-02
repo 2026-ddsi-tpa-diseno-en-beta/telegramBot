@@ -51,9 +51,10 @@ public class ComponentCommandHandler {
       path = path.replace("{id}", java.net.URLEncoder.encode(pieces[0], java.nio.charset.StandardCharsets.UTF_8).replace("+", "%20"));
       body = pieces.length == 2 ? pieces[1] : "";
     }
+    String trace = UUID.randomUUID().toString();
     var builder = HttpRequest.newBuilder(URI.create(url.replaceAll("/+$", "") + path))
         .timeout(Duration.ofSeconds(180)).header("Accept", "application/json")
-        .header("X-Trace-Id", UUID.randomUUID().toString());
+        .header("X-Trace-Id", trace);
     String method = operation.path("method").asText();
     if (operation.path("schema").path("properties").has("datos")) {
       JsonNode data = mapper.readTree(body);
@@ -66,12 +67,17 @@ public class ComponentCommandHandler {
       builder.method(method, HttpRequest.BodyPublishers.noBody());
     }
     HttpResponse<String> response;
-    try { response = client.send(builder.build(), HttpResponse.BodyHandlers.ofString()); }
+    long start = System.nanoTime();
+    try { response = client.send(builder.build(), HttpResponse.BodyHandlers.ofString());
+      ClientEvents.completed(component, response.statusCode(), trace, start);
+    } catch (java.io.IOException ex) {
+      ClientEvents.completed(component, 0, trace, start);
+      return "No se pudo contactar el componente. Referencia: " + trace + ". Consultá el recurso antes de repetir una operación.";
+    }
     catch (InterruptedException ex) { Thread.currentThread().interrupt(); throw ex; }
     if (response.statusCode() < 200 || response.statusCode() >= 300)
-      return "No se pudo completar la operación (HTTP " + response.statusCode() + ").\n" + response.body();
-    if (response.body().isBlank()) return "Operación completada.";
-    try { return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(mapper.readTree(response.body())); }
-    catch (Exception ex) { return response.body(); }
+      return ResponseFormatter.error(response.statusCode(), trace);
+    if (response.body().isBlank()) return method.equals("DELETE") ? "✅ Recurso eliminado." : "✅ Operación completada.";
+    return response.body();
   }
 }

@@ -21,7 +21,10 @@ public class BotApplication {
             "donaciones", optionalProperty(properties, "integrations.donaciones-url", "DONACIONES_API_URL", "http://localhost:8081"),
             "logistica", optionalProperty(properties, "integrations.logistica-url", "LOGISTICA_API_URL", "http://localhost:8083"),
             "incentivos", optionalProperty(properties, "integrations.incentivos-url", "INCENTIVOS_API_URL", "http://localhost:8084")));
-        BotCommandHandler commandHandler = new BotCommandHandler(donadoresApiClient, components);
+        java.util.Set<Long> adminChats = new java.util.HashSet<>();
+        String configuredAdmins = System.getenv().getOrDefault("TELEGRAM_ADMIN_CHAT_IDS", "");
+        for (String id : configuredAdmins.split(",")) if (!id.isBlank()) adminChats.add(Long.parseLong(id.trim()));
+        BotCommandHandler commandHandler = new BotCommandHandler(donadoresApiClient, components, adminChats);
         DonaTrackBot bot = new DonaTrackBot(username, token, commandHandler);
 
         TelegramBotsApi botsApi = new TelegramBotsApi(DefaultBotSession.class);

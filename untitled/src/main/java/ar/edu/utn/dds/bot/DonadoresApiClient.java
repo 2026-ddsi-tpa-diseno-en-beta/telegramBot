@@ -176,21 +176,22 @@ public class DonadoresApiClient {
     }
 
     private String send(HttpRequest request) throws IOException, InterruptedException {
+        String trace = java.util.UUID.randomUUID().toString();
         request = HttpRequest.newBuilder(request, (name, value) -> true)
                 .timeout(java.time.Duration.ofSeconds(180))
-                .header("X-Trace-Id", java.util.UUID.randomUUID().toString()).build();
-        HttpResponse<String> response =
-                httpClient.send(
-                        request,
-                        HttpResponse.BodyHandlers.ofString()
-                );
+                .header("X-Trace-Id", trace).build();
+        long start = System.nanoTime();
+        HttpResponse<String> response;
+        try { response = httpClient.send(request, HttpResponse.BodyHandlers.ofString()); }
+        catch (IOException ex) {
+            ClientEvents.completed("donadores", 0, trace, start);
+            throw new IOException("No se pudo contactar Donadores. Referencia: " + trace + ". Consultá el estado antes de repetir una operación.");
+        }
+        ClientEvents.completed("donadores", response.statusCode(), trace, start);
 
         if (response.statusCode() < 200 || response.statusCode() >= 300)
             throw new IllegalStateException(
-                    "API respondió HTTP "
-                            + response.statusCode()
-                            + ": "
-                            + response.body()
+                    ResponseFormatter.error(response.statusCode(), trace)
             );
 
         return response.body();

@@ -12,17 +12,49 @@ public class BotCommandHandler {
     private final DonadoresApiClient api;
     private final ComponentCommandHandler components;
     private final Map<Long, BotRole> roles = new ConcurrentHashMap<>();
+    private final Map<Long, SavedResponse> responses = new ConcurrentHashMap<>();
+    private final java.util.Set<Long> adminChats;
+    private record SavedResponse(long created, java.util.List<String> pages) {}
 
     public BotCommandHandler(DonadoresApiClient api) {
         this(api, null);
     }
 
     public BotCommandHandler(DonadoresApiClient api, ComponentCommandHandler components) {
+        this(api, components, java.util.Set.of());
+    }
+
+    public BotCommandHandler(DonadoresApiClient api, ComponentCommandHandler components, java.util.Set<Long> adminChats) {
         this.api = api;
         this.components = components;
+        this.adminChats = java.util.Set.copyOf(adminChats);
     }
 
     public String handle(long chatId, String text) {
+        if (text != null && text.trim().matches("/pagina(?:@\\w+)?(?:\\s.*)?")) {
+            SavedResponse saved = responses.get(chatId);
+            if (saved == null || System.currentTimeMillis() - saved.created() > 600_000)
+                return "La consulta anterior venció. Ejecutá nuevamente el comando.";
+            try {
+                int number = Integer.parseInt(text.trim().split("\\s+", 2)[1]);
+                return page(saved.pages(), number);
+            } catch (Exception ex) { return "Usá /pagina N con el número de página de la última respuesta."; }
+        }
+        var pages = ResponseFormatter.pages(handleCommand(chatId, text));
+        responses.entrySet().removeIf(entry -> System.currentTimeMillis() - entry.getValue().created() > 600_000);
+        if (responses.size() >= 1000 && !responses.containsKey(chatId))
+            return String.join("\n\n", pages); // Bound memory without losing any response data.
+        responses.put(chatId, new SavedResponse(System.currentTimeMillis(), pages));
+        return page(pages, 1);
+    }
+
+    private String page(java.util.List<String> pages, int number) {
+        if (number < 1 || number > pages.size()) return "Página fuera de rango: 1 a " + pages.size() + ".";
+        return pages.get(number - 1) + (pages.size() > 1
+            ? "\n\nPágina " + number + "/" + pages.size() + " · /pagina N para continuar" : "");
+    }
+
+    private String handleCommand(long chatId, String text) {
         if (text == null || text.isBlank())
             return "No entendí el comando.";
 
@@ -169,6 +201,8 @@ public class BotCommandHandler {
     }
 
     private String selectRole(long chatId, BotRole role) {
+        if (role == BotRole.ADMIN && !adminChats.isEmpty() && !adminChats.contains(chatId))
+            return "Este chat no está habilitado para el rol admin. Podés seleccionar /donador.";
         roles.put(chatId, role);
 
         return switch (role) {
