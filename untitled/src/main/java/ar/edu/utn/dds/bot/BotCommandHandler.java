@@ -10,10 +10,16 @@ import java.util.concurrent.ConcurrentHashMap;
 public class BotCommandHandler {
 
     private final DonadoresApiClient api;
+    private final ComponentCommandHandler components;
     private final Map<Long, BotRole> roles = new ConcurrentHashMap<>();
 
     public BotCommandHandler(DonadoresApiClient api) {
+        this(api, null);
+    }
+
+    public BotCommandHandler(DonadoresApiClient api, ComponentCommandHandler components) {
         this.api = api;
+        this.components = components;
     }
 
     public String handle(long chatId, String text) {
@@ -22,6 +28,13 @@ public class BotCommandHandler {
 
         String[] parts = text.trim().split("\\s+", 2);
         String command = parts[0].toLowerCase();
+        command = command.split("@", 2)[0];
+        command = switch (command) {
+            case "/depositos" -> "/listar_depositos";
+            case "/stock" -> "/consultar_stock";
+            case "/insignias" -> "/listar_insignias";
+            default -> command;
+        };
 
         String args =
                 parts.length > 1
@@ -29,6 +42,11 @@ public class BotCommandHandler {
                         : "";
 
         try {
+            boolean legacyArguments = (command.equals("/crear_entidad") || command.equals("/modificar_necesidad")) && args.contains("|");
+            if (components != null && components.supports(command) && !legacyArguments) {
+                if (roles.get(chatId) != BotRole.ADMIN) return "Seleccioná /admin para operar los componentes.\nUsá /menu para las consultas de donador.";
+                return components.handle(command, args);
+            }
             return switch (command) {
                 case "/start" ->
                         start();
@@ -183,6 +201,10 @@ public class BotCommandHandler {
                     /necesidades_producto productoID
 
                     /menu
+                    /ayuda donaciones
+                    /ayuda donadores
+                    /ayuda logistica
+                    /ayuda incentivos
                     """;
         };
     }

@@ -1,88 +1,69 @@
 package ar.edu.utn.dds.bot;
 
-import org.telegram.telegrambots.meta.TelegramBotsApi;
-import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
+import org.telegram.telegrambots.meta.TelegramBotsApi;
+import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 
 public class BotApplication {
 
     public static void main(String[] args) throws Exception {
-
         Properties properties = cargarProperties();
 
-        String username = requiredProperty(
-                properties,
-                "telegram.bot.username"
-        );
+        String username = requiredProperty(properties, "telegram.bot.username", "TELEGRAM_BOT_USERNAME");
+        String token = requiredProperty(properties, "telegram.bot.token", "TELEGRAM_BOT_TOKEN");
+        String donadoresUrl = requiredProperty(properties, "integrations.donadores-url", "DONADORES_API_URL");
 
-        String token = requiredProperty(
-                properties,
-                "telegram.bot.token"
-        );
+        DonadoresApiClient donadoresApiClient = new DonadoresApiClient(donadoresUrl);
+        ComponentCommandHandler components = new ComponentCommandHandler(java.util.Map.of(
+            "donadores", donadoresUrl,
+            "donaciones", optionalProperty(properties, "integrations.donaciones-url", "DONACIONES_API_URL", "http://localhost:8081"),
+            "logistica", optionalProperty(properties, "integrations.logistica-url", "LOGISTICA_API_URL", "http://localhost:8083"),
+            "incentivos", optionalProperty(properties, "integrations.incentivos-url", "INCENTIVOS_API_URL", "http://localhost:8084")));
+        BotCommandHandler commandHandler = new BotCommandHandler(donadoresApiClient, components);
+        DonaTrackBot bot = new DonaTrackBot(username, token, commandHandler);
 
-        String donadoresUrl = requiredProperty(
-                properties,
-                "integrations.donadores-url"
-        );
+        TelegramBotsApi botsApi = new TelegramBotsApi(DefaultBotSession.class);
+        botsApi.registerBot(bot);
 
-        DonadoresApiClient api =
-                new DonadoresApiClient(donadoresUrl);
-
-        BotCommandHandler handler =
-                new BotCommandHandler(api);
-
-        DonaTrackBot bot =
-                new DonaTrackBot(
-                        username,
-                        token,
-                        handler
-                );
-
-        TelegramBotsApi telegramBotsApi =
-                new TelegramBotsApi(
-                        DefaultBotSession.class
-                );
-
-        telegramBotsApi.registerBot(bot);
         System.out.println("DonaTrack Telegram Bot iniciado.");
     }
 
     private static Properties cargarProperties() {
         Properties properties = new Properties();
 
-        try (InputStream input =
-                     BotApplication.class
-                             .getClassLoader()
-                             .getResourceAsStream("application.properties")) {
-            if (input == null)
-                throw new IllegalStateException(
-                        "No se encontró application.properties"
-                );
+        try (InputStream inputStream = BotApplication.class
+            .getClassLoader()
+            .getResourceAsStream("application.properties")) {
 
-            properties.load(input);
-        } catch (IOException e) {
-            throw new IllegalStateException(
-                    "No se pudo cargar application.properties",
-                    e
-            );
+            if (inputStream == null) {
+                throw new IllegalStateException("No se encontro application.properties");
+            }
+
+            properties.load(inputStream);
+            return properties;
+        } catch (IOException exception) {
+            throw new IllegalStateException("No se pudo cargar application.properties", exception);
         }
-
-        return properties;
     }
 
-    private static String requiredProperty(
-            Properties properties,
-            String name
-    ) {
-        String value = properties.getProperty(name);
-        if (value == null || value.isBlank())
-            throw new IllegalStateException(
-                    "Falta propiedad: " + name
-            );
+    private static String requiredProperty(Properties properties, String key, String environmentVariable) {
+        String environmentValue = System.getenv(environmentVariable);
+        if (environmentValue != null && !environmentValue.isBlank()) {
+            return environmentValue;
+        }
 
-        return value;
+        String propertyValue = properties.getProperty(key);
+        if (propertyValue == null || propertyValue.isBlank()) {
+            throw new IllegalStateException(key + " o " + environmentVariable + " es obligatorio");
+        }
+
+        return propertyValue;
+    }
+
+    private static String optionalProperty(Properties properties, String key, String environmentVariable, String fallback) {
+        String value = System.getenv(environmentVariable);
+        return value != null && !value.isBlank() ? value : properties.getProperty(key, fallback);
     }
 }

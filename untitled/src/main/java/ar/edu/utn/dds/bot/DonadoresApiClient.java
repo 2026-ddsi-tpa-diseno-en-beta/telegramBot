@@ -26,7 +26,7 @@ public class DonadoresApiClient {
                     "La URL de Donadores y Entidades es obligatoria"
             );
 
-        this.httpClient = HttpClient.newHttpClient();
+        this.httpClient = HttpClient.newBuilder().connectTimeout(java.time.Duration.ofSeconds(15)).build();
         this.objectMapper = new ObjectMapper();
         this.baseUrl = removeTrailingSlash(baseUrl);
     }
@@ -176,6 +176,9 @@ public class DonadoresApiClient {
     }
 
     private String send(HttpRequest request) throws IOException, InterruptedException {
+        request = HttpRequest.newBuilder(request, (name, value) -> true)
+                .timeout(java.time.Duration.ofSeconds(180))
+                .header("X-Trace-Id", java.util.UUID.randomUUID().toString()).build();
         HttpResponse<String> response =
                 httpClient.send(
                         request,
