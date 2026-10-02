@@ -44,4 +44,11 @@ class ComponentCommandHandlerTest {
   @Test void helpExplainsOperationsForEveryComponent() {
     for(String component:List.of("donadores","donaciones","logistica","incentivos")) assertTrue(components.help(component).contains("/crear_"));
   }
+  @Test void preservesCommandsAddedByTheGroup() {
+    handler.handle(1,"/admin");
+    handler.handle(1,"/depositos");assertEquals("GET /depositos",call.get());
+    handler.handle(1,"/stock p");assertEquals("GET /stock/p",call.get());
+    handler.handle(1,"/insignias");assertEquals("GET /insignias",call.get());
+    handler.handle(1,"/procesar_donador d");assertEquals("POST /procesamiento/d",call.get());
+  }
 }
