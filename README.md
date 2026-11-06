@@ -1,11 +1,18 @@
-# telegramBot
+# DonaTrack en Telegram
 
-El bot conserva la selección inicial `/donador` / `/admin` y los comandos de la entrega 4, incluidos parámetros separados por `|`. La entrega 5 agrega consultas y ABM de los cuatro componentes mediante `/ayuda COMPONENTE`.
+El bot conserva los comandos anteriores y agrega formularios guiados para las 84 operaciones del catálogo compartido con MCP.
 
-Las respuestas se muestran como campos legibles. Para respuestas largas usar `/pagina N` sobre la última consulta, durante diez minutos. No vuelve a ejecutar la operación ni requiere copiar JSON de respuesta.
+- `/start`: elegir Donador o Administrador.
+- `/menu`: abrir el menú; `/consultas` muestra los cuatro reportes integrados.
+- `/operaciones COMPONENTE`: consultar las operaciones disponibles.
+- Una operación sin argumentos abre su formulario. `/omitir` salta campos opcionales y `/atras` permite corregirlos.
+- Las escrituras guiadas muestran un resumen y requieren `/confirmar`. `/cancelar` descarta el formulario.
+- `/pagina N` muestra otra página de la última respuesta sin repetir la operación.
 
-Opcional: `TELEGRAM_ADMIN_CHAT_IDS=123,456` limita la selección de admin a esos chats. Sin configurar se conserva el selector de rol previsto por la consigna. Para autorizar personas usar chats privados; un grupo identifica al chat, no a cada miembro.
+Compilar desde `untitled` con `mvn package` y ejecutar `java -jar target/donatrack-telegram.jar`.
 
-Logs centralizados opcionales: `BETTERSTACK_SOURCE_TOKEN`, `BETTERSTACK_INGEST_URL`, `APP_NAME=donatrack-telegram` e `INSTANCE_ID`. No registrar tokens ni cuerpos de mensajes. Mantener una sola instancia por token.
+Configurar `TELEGRAM_BOT_TOKEN` y, si corresponde, `TELEGRAM_BOT_USERNAME`. Se conserva el archivo de propiedades existente; `TELEGRAM_CONFIG` permite indicar uno externo. Las variables de entorno tienen prioridad. No guardar el token en Git.
 
-Configuración y ensayo: [guía de presentación](../testing/SETUP_PRESENTACION.md) y [alcance de mejoras](../testing/MEJORAS_ENTREGA5.md) en el checkout TPA.
+`GATEWAY_URL` configura el acceso a los servicios desde una sola URL. Se mantienen las URLs individuales como overrides. `TELEGRAM_ADMIN_CHAT_IDS` es opcional y limita los chats autorizados para seleccionar Administrador; `/mi_chat` muestra el identificador.
+
+Mantener una sola instancia por token. La selección de rol y los comandos con parámetros anteriores siguen disponibles.
