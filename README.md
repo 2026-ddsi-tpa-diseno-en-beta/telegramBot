@@ -13,6 +13,6 @@ Compilar desde `untitled` con `mvn package` y ejecutar `java -jar target/donatra
 
 Configurar `TELEGRAM_BOT_TOKEN` y, si corresponde, `TELEGRAM_BOT_USERNAME`. Se conserva el archivo de propiedades existente; `TELEGRAM_CONFIG` permite indicar uno externo. Las variables de entorno tienen prioridad. No guardar el token en Git.
 
-`GATEWAY_URL` configura el acceso a los servicios desde una sola URL. Se mantienen las URLs individuales como overrides. `TELEGRAM_ADMIN_CHAT_IDS` es opcional y limita los chats autorizados para seleccionar Administrador; `/mi_chat` muestra el identificador.
+`GATEWAY_URL` (o `integrations.gateway-url`) configura el acceso a los servicios desde una sola URL. La configuración incluida apunta al Gateway; las URLs individuales por componente sólo deben usarse como overrides explícitos de pruebas locales. `TELEGRAM_ADMIN_CHAT_IDS` es opcional y limita los chats autorizados para seleccionar Administrador; `/mi_chat` muestra el identificador.
 
 Mantener una sola instancia por token. La selección de rol y los comandos con parámetros anteriores siguen disponibles.
