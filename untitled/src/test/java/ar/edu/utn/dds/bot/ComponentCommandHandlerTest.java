@@ -22,8 +22,39 @@ class ComponentCommandHandlerTest {
     handler=new BotCommandHandler(new DonadoresApiClient(url),components);
   }
   @AfterEach void close() {server.stop(0);}
-  @Test void selectionOfAdminIsRequired() {
-    assertTrue(handler.handle(1,"/listar_productos").contains("/admin"));assertNull(call.get());
+  @Test void selectingARoleIsRequiredBeforeReading() {
+    String response=handler.handle(1,"/listar_productos");
+    assertTrue(response.contains("/donador"));assertTrue(response.contains("/admin"));assertNull(call.get());
+  }
+  @Test void selectedDonorCanReadWithArgumentsOrAGuidedForm() {
+    handler.handle(1,"/donador");
+    handler.handle(1,"/buscar_producto p");assertEquals("GET /productos/p",call.get());
+    call.set(null);
+    assertTrue(handler.handle(1,"/buscar_producto").contains("Paso 1"));assertNull(call.get());
+    handler.handle(1,"p");assertEquals("GET /productos/p",call.get());
+    handler.handle(1,"/entidades");assertEquals("GET /entidades",call.get());
+  }
+  @Test void selectedDonorCannotWriteWithArgumentsOrAGuidedForm() {
+    handler.handle(1,"/donador");
+    assertTrue(handler.handle(1,"/crear_producto").contains("/admin"));
+    assertTrue(handler.handle(1,"/realizar_donacion {\"cantidad\":1}").contains("/admin"));
+    assertTrue(handler.handle(1,"/eliminar_producto p").contains("/admin"));
+    assertNull(call.get());
+  }
+  @Test void configuredAdminAllowlistDoesNotBlockDonorReadsOrGrantWrites() {
+    String url="http://127.0.0.1:"+server.getAddress().getPort();
+    handler=new BotCommandHandler(new DonadoresApiClient(url),components,Set.of(1L));
+    handler.handle(2,"/donador");
+    assertTrue(handler.handle(2,"/admin").contains("no está habilitado"));
+    handler.handle(2,"/buscar_producto p");assertEquals("GET /productos/p",call.get());
+    call.set(null);
+    assertTrue(handler.handle(2,"/eliminar_producto p").contains("/admin"));assertNull(call.get());
+    handler.handle(1,"/admin");handler.handle(1,"/eliminar_producto p");
+    assertEquals("DELETE /productos/p",call.get());
+  }
+  @Test void emptyAdminAllowlistPreservesRoleSelectionForTheDemo() {
+    assertTrue(handler.handle(1,"/admin").contains("Rol seleccionado: ADMIN"));
+    handler.handle(1,"/eliminar_producto p");assertEquals("DELETE /productos/p",call.get());
   }
   @Test void dispatchesConsultationsToAllFourComponents() {
     handler.handle(1,"/admin");

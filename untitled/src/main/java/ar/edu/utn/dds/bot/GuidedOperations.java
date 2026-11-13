@@ -91,9 +91,7 @@ public class GuidedOperations {
       if (s != null && !text.startsWith("/")
           || s != null && Set.of("/confirmar", "/omitir", "/atras").contains(text)) {
         s.touched = System.currentTimeMillis();
-        if (!admin
-            && !s.command.equals("/crear_donador")
-            && !api.operation(s.command).path("method").asText().equals("GET")) {
+        if (!admin && api.requiresAdmin(s.command)) {
           sessions.remove(chat);
           return "Seleccioná /admin para modificar datos.";
         }
@@ -126,7 +124,7 @@ public class GuidedOperations {
       String command = text.split("\\s+", 2)[0].split("@", 2)[0];
       JsonNode op = api.operation(command);
       if (op == null) return null;
-      if (!admin && !command.equals("/crear_donador") && !op.path("method").asText().equals("GET"))
+      if (!admin && api.requiresAdmin(command))
         return "Seleccioná /admin para modificar datos. Podés explorar /consultas.";
       // Existing parameterized commands remain available; the menu always enters guided forms.
       if (text.split("\\s+", 2).length > 1) return null;
