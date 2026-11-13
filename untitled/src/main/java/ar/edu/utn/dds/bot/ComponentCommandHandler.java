@@ -26,6 +26,14 @@ public class ComponentCommandHandler {
     return commands.get(name);
   }
 
+  public boolean requiresAdmin(String command) {
+    JsonNode op = operation(command);
+    // Self-registration remains available to the selected donor role.
+    return op != null
+        && !op.path("method").asText().equals("GET")
+        && !command.equals("/crear_donador");
+  }
+
   public List<JsonNode> operations(String component) {
     return commands.values().stream()
         .filter(op -> component.isBlank() || component.equals(op.path("component").asText()))

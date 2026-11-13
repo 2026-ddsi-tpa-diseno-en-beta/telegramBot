@@ -12,7 +12,7 @@ class BotApplicationConfigTest {
   void keepsTheExistingClasspathConfigurationWithoutPackagingACredential() {
     var properties = BotApplication.cargarProperties(null);
     assertFalse(properties.getProperty("telegram.bot.username", "").isBlank());
-    assertTrue(properties.getProperty("integrations.donadores-url", "").startsWith("http"));
+    assertTrue(properties.getProperty("integrations.gateway-url", "").startsWith("http"));
     assertTrue(properties.getProperty("telegram.bot.token", "").isBlank());
   }
 

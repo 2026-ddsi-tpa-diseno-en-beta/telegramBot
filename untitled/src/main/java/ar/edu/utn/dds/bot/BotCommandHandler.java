@@ -91,9 +91,10 @@ public class BotCommandHandler {
           (command.equals("/crear_entidad") || command.equals("/modificar_necesidad"))
               && args.contains("|");
       if (components != null && components.supports(command) && !legacyArguments) {
-        if (roles.get(chatId) != BotRole.ADMIN)
-          return "Seleccioná /admin para operar los componentes.\n"
-                     + "Usá /menu para las consultas de donador.";
+        if (roles.get(chatId) == null)
+          return "Primero seleccioná /donador para consultar o /admin para administrar.";
+        if (roles.get(chatId) != BotRole.ADMIN && components.requiresAdmin(command))
+          return "Seleccioná /admin para modificar datos.\nPodés explorar /consultas.";
         return components.handle(command, args);
       }
       return switch (command) {
@@ -107,18 +108,18 @@ public class BotCommandHandler {
 
           // DONADORES
         case "/registrarse" -> requireRole(chatId, BotRole.DONADOR, () -> registrarDonador(args));
-        case "/estadisticas" -> requireRole(chatId, BotRole.DONADOR, () -> estadisticas(args));
-        case "/donador_id" -> requireRole(chatId, BotRole.DONADOR, () -> buscarDonador(args));
-        case "/donadores" -> requireRole(chatId, BotRole.DONADOR, api::listarDonadores);
+        case "/estadisticas" -> requireSelectedRole(chatId, () -> estadisticas(args));
+        case "/donador_id" -> requireSelectedRole(chatId, () -> buscarDonador(args));
+        case "/donadores" -> requireSelectedRole(chatId, api::listarDonadores);
 
           // ADMIN
         case "/crear_entidad" -> requireRole(chatId, BotRole.ADMIN, () -> crearEntidad(args));
-        case "/entidades" -> requireRole(chatId, BotRole.ADMIN, api::listarEntidades);
-        case "/entidad" -> requireRole(chatId, BotRole.ADMIN, () -> buscarEntidad(args));
+        case "/entidades" -> requireSelectedRole(chatId, api::listarEntidades);
+        case "/entidad" -> requireSelectedRole(chatId, () -> buscarEntidad(args));
         case "/alta_necesidad" -> requireRole(chatId, BotRole.ADMIN, () -> crearNecesidad(args));
-        case "/necesidades_producto" -> requireRole(
-            chatId, BotRole.ADMIN, () -> necesidadesPorProducto(args));
-        case "/necesidad" -> requireRole(chatId, BotRole.ADMIN, () -> buscarNecesidad(args));
+        case "/necesidades_producto" -> requireSelectedRole(
+            chatId, () -> necesidadesPorProducto(args));
+        case "/necesidad" -> requireSelectedRole(chatId, () -> buscarNecesidad(args));
         case "/editar_entidad" -> requireRole(chatId, BotRole.ADMIN, () -> editarEntidad(args));
         case "/borrar_necesidad" -> requireRole(chatId, BotRole.ADMIN, () -> borrarNecesidad(args));
         case "/modificar_necesidad" -> requireRole(
@@ -298,6 +299,12 @@ public class BotCommandHandler {
       return "Primero seleccioná el rol correcto con:\n\n"
           + (expected == BotRole.DONADOR ? "/donador" : "/admin");
 
+    return action.execute();
+  }
+
+  private String requireSelectedRole(long chatId, CommandAction action) throws Exception {
+    if (roles.get(chatId) == null)
+      return "Primero seleccioná /donador para consultar o /admin para administrar.";
     return action.execute();
   }
 
